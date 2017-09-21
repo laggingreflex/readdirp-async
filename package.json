@@ -1,0 +1,7 @@
+{
+  "name": "readdirp-async",
+  "version": "0.0.0",
+  "description": "readdirp with async callback API",
+  "main": "index.js",
+  "repository": "laggingreflex/readdirp-async"
+}
