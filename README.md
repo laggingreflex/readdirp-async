@@ -1,8 +1,6 @@
 # readdirp-async
 
-Yet [another][1] "readdirp" implementation.
-
-With a much simpler async callback API.
+Yet [another][1] "readdirp" implementation that's an async generator.
 
 [1]: https://www.npmjs.com/search?q=readdir
 
@@ -12,88 +10,37 @@ With a much simpler async callback API.
 npm install readdirp-async
 ```
 
-## Usage
-
-### API
-
+## API
 ```js
-readdirpAsync(path, callback)
+import r from 'readdirp-async'
 ```
+**`r(path, opts)`**
+* **`path`** `<string>` Root path to start reading dir
+* **`[opts.depth]`** `[number]` Depth to scan down to
 
-* **`path`** Root path to start reading dir
-* **`callback`** Function called on discovering each child item, whether file or directory
+**`for await(const output of r(…))`**
+* **`output.path`** `[string]` Path of the descendant
+* **`output.dirent`** [`[dirent]`](https://nodejs.org/api/fs.html#class-fsdirent) instance
+* **`output.depth`** `[number]` Current depth
+* **`output.parent`** `[string]` Parent path
 
-  ```js
-  async function callback(error, item, stat, lstat) {...}
-  ```
+**`r(…).next(input)`**
+* **`input.skip`** `[boolean]` Skip current directory (and all its descendants)
+* You can also assign these to **`output`**
 
-  **Accepts** 4 arguments:
-
-  * **`error`** Any error that may have ocurred, otherwise null
-  * **`item`** An item, file or directory
-  * **`stat`** Result of `fs.stat(item)`
-  * **`lstat`** Result of `fs.lstat(item)`
-
-  **Returns** a **`boolean`** (or a promise that resolves to one), indicating whether or not to recursively read down the current directory (if it's a directory) path.
-
-### Example
+## Example
 
 ```js
-const readdirpAsync = require('readdirp-async')
+const r = require('readdirp-async')
 
-readdirpAsync(__dirname, callback)
-
-async function callback(error, item, stat, lstat){
-  // do something with item
-  // check if isDirectory() etc from stat or lstat
-  if (stat.isDirectory()) {
-    if (/* you want to recurse into this directory */) {
-      return true
-    }
+for await(const o of r(__dirname)) {
+  if (o.path.includes('node_modules')) {
+    // Skip commonly ignored directories and their contents
+    o.skip = true
+    continue;
   } else {
-    // do any async operations, it'll await
-    await fs.copyFile(item, someDestination)
+    // do any operations
+    await fs.copy(o.item, …)
   }
 }
-```
-
-### Recipes
-
-#### Concurrency
-
-Implement your own concurrency.
-
-
-The following implements two separate concurrencies - one for "discovering" all of the paths, and another for a heavy (copy) "operation".
-
-```js
-const readdirpAsync = require('readdirp-async')
-const delay = require('promise-delay')
-
-readdirpAsync(__dirname, callback)
-
-let counterForDiscovery = 0
-let counterForCopyOperation = 0
-
-async function callback (error, item) {
-
-  // 1000 concurrent "discovery"
-  while(counterForDiscovery >= 1000) {
-    await delay(1000)
-  }
-  counterForDiscovery++
-
-  // 10 concurrent "operation"
-  while(counterForCopyOperation >= 10) {
-    await delay(1000)
-  }
-  counterForCopyOperation++
-
-  // "operation"
-  await fs.copy(item, someDestination)
-
-  counterForCopyOperation--
-  counterForDiscovery--
-}
-
 ```

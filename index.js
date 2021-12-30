@@ -1,21 +1,15 @@
-const fs = require('fs');
-const Path = require('path');
-const { promisify: p } = require('util');
+import { join } from 'path';
+import { readdir } from 'fs/promises';
 
-module.exports = async function main(item, cb) {
-  item = Path.normalize(item);
-  try {
-    const [stat, lstat] = await Promise.all([
-      p(fs.stat)(item),
-      p(fs.lstat)(item),
-    ]);
-    if (await cb(null, item, stat, lstat) === false) return;
-    if (stat.isDirectory()) {
-      const dir = item;
-      const children = await p(fs.readdir)(dir);
-      return Promise.all(children.map(item => main(Path.join(dir, item), cb)));
-    }
-  } catch (error) {
-    return cb(error, item);
+export default async function* readdirPAsync(parent, opts, state) {
+  const children = await readdir(parent, { withFileTypes: true });
+  for (const dirent of children) {
+    const child = join(parent, dirent.name);
+    const output = { path: child, parent, dirent, depth: state?.depth };
+    const input = Object.assign(output, yield output);
+    if (input.skip) continue;
+    if (!dirent.isDirectory()) continue;
+    if ((state?.depth ?? 0) >= (opts?.depth ?? Infinity)) continue;
+    yield* readdirPAsync(child, opts, { ...state, depth: (state?.depth ?? 0) + 1 });
   }
-};
+}
