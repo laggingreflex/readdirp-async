@@ -4,5 +4,11 @@
   "description": "readdirp async generator",
   "main": "index.js",
   "type": "module",
-  "repository": "laggingreflex/readdirp-async"
+  "repository": "laggingreflex/readdirp-async",
+  "keywords": [
+    "readdir",
+    "readdirp",
+    "recursive",
+    "async"
+  ]
 }
