@@ -1,6 +1,6 @@
 {
   "name": "readdirp-async",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "readdirp async generator",
   "main": "index.js",
   "type": "module",
