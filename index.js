@@ -4,6 +4,8 @@ import { readdir } from 'fs/promises';
 import { Dirent } from 'fs';
 const debug = util.debug('readdirp-async');
 
+const commonSystemErrors = ['ENOTDIR', 'ENOENT'];
+
 /**
  * readdirp async generator
  * @async
@@ -31,9 +33,12 @@ export default async function* readdirPAsync(path, opts, { depth = 0, state = { 
     try {
       yield* readdirPAsync(child, opts, { depth: depth + 1, state });
     } catch (error) {
-      if (opts.halt) throw error;
-      state.errors++;
-      debug(error);
+      /* Only catch fs/readdir errors, not user's  */
+      if (commonSystemErrors.includes(error.code)) {
+        if (opts.halt) throw error;
+        state.errors++;
+        debug({ error });
+      } else throw error;
     }
   }
 
